@@ -207,6 +207,22 @@
     .conquistas-grid { grid-template-columns: 1fr; }
     .logo { font-size: 15px; }
   }
+
+  /* ── MODAL PONTUAÇÃO ── */
+  .modal-overlay { display:none; position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.6); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:16px; }
+  .modal-overlay.open { display:flex; }
+  .modal-box { background:var(--navy-mid); border:1px solid var(--border); border-radius:var(--radius); padding:28px; max-width:420px; width:100%; box-shadow:0 24px 64px rgba(0,0,0,.6); animation:fadeIn .2s ease; }
+  .modal-title { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; color:var(--gold); margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; }
+  .modal-close { background:none; border:none; color:var(--text-muted); font-size:22px; cursor:pointer; line-height:1; padding:0 4px; transition:color .15s; }
+  .modal-close:hover { color:var(--text); }
+  .pts-rule { display:flex; align-items:flex-start; gap:14px; padding:12px 0; border-bottom:1px solid var(--border); }
+  .pts-rule:last-child { border-bottom:none; padding-bottom:0; }
+  .pts-badge { font-family:'Bebas Neue',sans-serif; font-size:22px; min-width:46px; text-align:center; line-height:1.1; }
+  .pts-desc { font-size:13px; color:var(--text-muted); line-height:1.5; }
+  .pts-desc strong { color:var(--text); font-weight:600; display:block; margin-bottom:2px; }
+  .help-btn { background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:50%; width:28px; height:28px; font-size:13px; font-weight:700; color:var(--text-muted); cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; justify-content:center; font-family:'Inter',sans-serif; flex-shrink:0; margin-left:8px; }
+  .help-btn:hover { background:var(--green); color:var(--navy); border-color:var(--green); }
+
 </style>
 </head>
 <body>
@@ -245,7 +261,10 @@
 <main>
   <!-- TELA 1: RANKING -->
   <div id="s1" class="screen active">
-    <div class="section-title">🏆 RANKING <span>DO BOLÃO</span></div>
+    <div class="section-title" style="justify-content:space-between;align-items:center">
+      <span>🏆 RANKING <span>DO BOLÃO</span></span>
+      <button class="help-btn" onclick="document.getElementById('modalPontuacao').classList.add('open')" title="Ver sistema de pontuação">?</button>
+    </div>
     <div class="stat-strip" id="statStrip"></div>
     <div class="card" style="margin-bottom:20px">
       <table class="ranking-table">
@@ -497,7 +516,7 @@ function calcPontos(palpC,palpF,realC,realF){
   const av=pV===rV, ac=pc===rc, af=pf===rf;
   if(av&&(ac||af)) return 35;
   if(av) return 20;
-  if(!av&&(ac||af)) return 15;
+  if(!av&&(ac||af)) return 10;
   return 0;
 }
 function acertouResultado(pC,pF,rC,rF){ if(rC===null||rC===undefined) return false; const pc=+pC,pf=+pF,rc=+rC,rf=+rF; if(isNaN(pc)||isNaN(pf)) return false; return (pc>pf?'c':pc<pf?'f':'e')===(rc>rf?'c':rc<rf?'f':'e'); }
@@ -611,6 +630,16 @@ function renderConquistas(rank){
     const ac=rank.filter(r=>{ const p=(ST.palpites[r.nome]||{})[jogo.id]; return p&&acertouPlacar(p.c,p.fo,res.c,res.fo); });
     if(ac.length===1) conquistas.push({icon:'🦄',label:'Acertou Sozinho',player:ac[0].nome,detail:`Placar de ${jogo.c} x ${jogo.fo}`});
   });
+  const jogosComRes=JOGOS_BASE.filter(j=>{const r=ST.resultados[j.id];return r&&r.c!==''&&r.c!==null&&r.c!==undefined;}).sort((a,b)=>a.d.localeCompare(b.d)||a.h.localeCompare(b.h));
+  if(jogosComRes.length>0){
+    let mSeq=0,mNome='';
+    rank.forEach(r=>{
+      let seq=0,mx=0;
+      jogosComRes.forEach(jg=>{ const p=(ST.palpites[r.nome]||{})[jg.id]; const res=ST.resultados[jg.id]; if(p&&acertouResultado(p.c,p.fo,res.c,res.fo)){seq++;if(seq>mx)mx=seq;}else{seq=0;} });
+      if(mx>mSeq){mSeq=mx;mNome=r.nome;}
+    });
+    if(mSeq>=2) conquistas.push({icon:'🔗',label:'Maior Sequência',player:mNome,detail:`${mSeq} acertos seguidos`});
+  }
   grid.innerHTML=conquistas.map(c=>`<div class="conquista-card"><div class="conquista-icon">${c.icon}</div><div class="conquista-label">${c.label}</div><div class="conquista-player">${c.player}</div><div class="conquista-detail">${c.detail}</div></div>`).join('');
 }
 
@@ -624,7 +653,7 @@ function filterJogos(f,btn){
   btn.classList.add('active'); renderJogos();
 }
 function renderJogos(){
-  const today=new Date().toISOString().slice(0,10);
+  const today=new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
   let jogos=JOGOS_BASE;
   if(currentFilter==='hoje') jogos=JOGOS_BASE.filter(j=>j.d===today);
   else if(currentFilter==='mata') jogos=JOGOS_BASE.filter(j=>j.r==='mata');
@@ -643,7 +672,7 @@ function renderJogos(){
 function renderJogoCard(j){
   const res=ST.resultados[j.id];
   const hasResult=res&&res.c!==''&&res.c!==null&&res.c!==undefined;
-  const today=new Date().toISOString().slice(0,10);
+  const today=new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
   let dC=j.c,dF=j.fo;
   if(j.r==='mata'){const cl=buildClassifiedMap();dC=resolveTeam(j.c,cl);dF=resolveTeam(j.fo,cl);}
   const isPC=dC===j.c&&j.c.match(/^(1º|2º|3º|Venc\.|Perd\.)/);
@@ -777,6 +806,8 @@ function renderAll(){
 // ═══════════════════════════════════════════════════
 //  INIT + POLLING
 // ═══════════════════════════════════════════════════
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('modalPontuacao').classList.remove('open');});
+
 document.addEventListener('DOMContentLoaded', async ()=>{
   renderAll();
   const ok = await fetchFromSheets();
@@ -789,5 +820,18 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   }, POLL_INTERVAL);
 });
 </script>
+
+<div class="modal-overlay" id="modalPontuacao" onclick="if(event.target===this)document.getElementById('modalPontuacao').classList.remove('open')">
+  <div class="modal-box">
+    <div class="modal-title">📋 SISTEMA DE PONTUAÇÃO<button class="modal-close" onclick="document.getElementById('modalPontuacao').classList.remove('open')">✕</button></div>
+    <div class="pts-rule"><div class="pts-badge" style="color:var(--gold)">50</div><div class="pts-desc"><strong>Placar exato</strong>Acertou o resultado e o número de gols dos dois times.</div></div>
+    <div class="pts-rule"><div class="pts-badge" style="color:var(--green)">35</div><div class="pts-desc"><strong>Vencedor + gols de uma seleção</strong>Acertou quem venceu e o número de gols de pelo menos um dos times (sem acertar o placar exato).</div></div>
+    <div class="pts-rule"><div class="pts-badge" style="color:#6495ED">20</div><div class="pts-desc"><strong>Seleção vencedora</strong>Acertou o vencedor sem acertar o número de gols de nenhuma das seleções.</div></div>
+    <div class="pts-rule"><div class="pts-badge" style="color:#6495ED">20</div><div class="pts-desc"><strong>Empate correto</strong>Acertou que seria empate, mas não o placar exato.</div></div>
+    <div class="pts-rule"><div class="pts-badge" style="color:orange">10</div><div class="pts-desc"><strong>Gols da seleção perdedora</strong>Acertou o número de gols do time que perdeu, sem acertar o vencedor.</div></div>
+    <div class="pts-rule"><div class="pts-badge" style="color:var(--red)">0</div><div class="pts-desc"><strong>Palpite errado</strong>Não acertou nenhum critério acima.</div></div>
+  </div>
+</div>
+
 </body>
 </html>
