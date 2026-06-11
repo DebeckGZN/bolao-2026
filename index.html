@@ -165,16 +165,21 @@
     .mobile-nav-bar {
       display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
       background: var(--navy-mid); border-top: 1px solid var(--border);
-      padding: 6px 0 env(safe-area-inset-bottom, 6px);
+      padding: 0 0 env(safe-area-inset-bottom, 0px);
     }
     .mobile-nav-bar button {
       flex: 1; background: none; border: none; color: var(--text-muted);
       font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 500;
-      padding: 6px 2px 4px; cursor: pointer; display: flex; flex-direction: column;
-      align-items: center; gap: 3px; transition: color .2s; line-height: 1;
+      min-height: 56px; padding: 8px 2px 6px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 3px; transition: color .15s, background .15s;
+      line-height: 1; touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent; user-select: none;
     }
-    .mobile-nav-bar button .nav-icon { font-size: 20px; }
+    .mobile-nav-bar button * { pointer-events: none; }
+    .mobile-nav-bar button .nav-icon { font-size: 22px; }
     .mobile-nav-bar button.active { color: var(--green); }
+    .mobile-nav-bar button:active { background: rgba(255,255,255,.06); }
 
     .section-title { font-size: 22px; margin-bottom: 14px; }
     .stat-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -244,16 +249,16 @@
 </header>
 
 <nav class="mobile-nav-bar" id="mobileNav">
-  <button class="active" onclick="showScreen('s1',this)">
+  <button class="active" data-screen="s1">
     <span class="nav-icon">🏆</span>Ranking
   </button>
-  <button onclick="showScreen('s2',this)">
+  <button data-screen="s2">
     <span class="nav-icon">📅</span>Jogos
   </button>
-  <button onclick="showScreen('s3',this)">
+  <button data-screen="s3">
     <span class="nav-icon">🌍</span>Copa
   </button>
-  <button onclick="showScreen('s4',this)">
+  <button data-screen="s4">
     <span class="nav-icon">📊</span>Result.
   </button>
 </nav>
@@ -794,15 +799,36 @@ function renderResRow(j,cl){
 function showScreen(id,btn){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('#mainNav button, #mobileNav button').forEach(b=>b.classList.remove('active'));
-  document.getElementById(id).classList.add('active'); btn.classList.add('active');
-  const idx=[...btn.parentElement.children].indexOf(btn);
-  const other=btn.closest('#mainNav')?document.getElementById('mobileNav'):document.getElementById('mainNav');
-  if(other&&other.children[idx]) other.children[idx].classList.add('active');
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if(btn.dataset&&btn.dataset.screen){
+    document.querySelectorAll('#mainNav button').forEach((b,i)=>{
+      if([...document.getElementById('mobileNav').children].indexOf(btn)===i) b.classList.add('active');
+    });
+  } else {
+    const idx=[...btn.parentElement.children].indexOf(btn);
+    const mob=document.getElementById('mobileNav');
+    if(mob&&mob.children[idx]) mob.children[idx].classList.add('active');
+  }
   if(id==='s1') renderRanking();
   if(id==='s2') renderJogos();
   if(id==='s3'){renderGrupos();renderBracket();}
   if(id==='s4') renderResultadosView();
 }
+function setupMobileNav(){
+  const mob=document.getElementById('mobileNav');
+  if(!mob) return;
+  mob.querySelectorAll('button[data-screen]').forEach(btn=>{
+    btn.addEventListener('touchstart',function(e){
+      e.preventDefault();
+      showScreen(this.dataset.screen,this);
+    },{passive:false});
+    btn.addEventListener('click',function(){
+      showScreen(this.dataset.screen,this);
+    });
+  });
+}
+
 function renderAll(){
   renderRanking(); renderJogos(); renderGrupos(); renderBracket(); renderResultadosView();
 }
@@ -813,6 +839,7 @@ function renderAll(){
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('modalPontuacao').classList.remove('open');});
 
 document.addEventListener('DOMContentLoaded', async ()=>{
+  setupMobileNav();
   renderAll();
   const ok = await fetchFromSheets();
   if(ok) renderAll();
