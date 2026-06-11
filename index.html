@@ -628,7 +628,7 @@ function renderConquistas(rank){
     const res=ST.resultados[jogo.id];
     if(!res||res.c===''||res.c===null||res.c===undefined) return;
     const ac=rank.filter(r=>{ const p=(ST.palpites[r.nome]||{})[jogo.id]; return p&&acertouPlacar(p.c,p.fo,res.c,res.fo); });
-    if(ac.length===1) conquistas.push({icon:'🦄',label:'Acertou Sozinho',player:ac[0].nome,detail:`Placar de ${jogo.c} x ${jogo.fo}`});
+    if(ac.length===1) conquistas.push({icon:'💡',label:'Acertou Sozinho',player:ac[0].nome,detail:`Placar de ${jogo.c} x ${jogo.fo}`});
   });
   const jogosComRes=JOGOS_BASE.filter(j=>{const r=ST.resultados[j.id];return r&&r.c!==''&&r.c!==null&&r.c!==undefined;}).sort((a,b)=>a.d.localeCompare(b.d)||a.h.localeCompare(b.h));
   if(jogosComRes.length>0){
