@@ -373,6 +373,16 @@ function todayET(){
   return new Date().toLocaleDateString('sv-SE', {timeZone:'America/New_York'});
 }
 
+function jogosDeHoje(){
+  const hoje = todayET();
+  const d = new Date(hoje + 'T12:00:00');
+  d.setDate(d.getDate() + 1);
+  const amanha = d.toISOString().slice(0, 10);
+  // Jogos de madrugada BRT (00:00 ou 01:00) pertencem à rodada do dia anterior
+  const madrugada = h => h === '00:00' || h === '01:00';
+  return j => j.d === hoje || (j.d === amanha && madrugada(j.h));
+}
+
 const JOGOS_BASE = [
   {id:'r1_01',r:'r1',d:'2026-06-11',h:'16:00',c:'México',fo:'África do Sul',g:'A'},
   {id:'r1_02',r:'r1',d:'2026-06-11',h:'23:00',c:'Coreia do Sul',fo:'República Tcheca',g:'A'},
@@ -664,7 +674,7 @@ function filterJogos(f,btn){
 function renderJogos(){
   const todayDate=todayET();
   let jogos=JOGOS_BASE;
-  if(currentFilter==='hoje') jogos=JOGOS_BASE.filter(j=>j.d===todayDate);
+  if(currentFilter==='hoje') jogos=JOGOS_BASE.filter(jogosDeHoje());
   else if(currentFilter==='mata') jogos=JOGOS_BASE.filter(j=>j.r==='mata');
   else if(currentFilter!=='todos') jogos=JOGOS_BASE.filter(j=>j.r===currentFilter);
   const container=document.getElementById('jogosContainer');
