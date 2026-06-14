@@ -228,6 +228,37 @@
   .help-btn { background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:50%; width:28px; height:28px; font-size:13px; font-weight:700; color:var(--text-muted); cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; justify-content:center; font-family:'Inter',sans-serif; flex-shrink:0; margin-left:8px; }
   .help-btn:hover { background:var(--green); color:var(--navy); border-color:var(--green); }
 
+
+  .trophy-row { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+  .trophy { display:inline-flex; align-items:center; gap:4px; background:rgba(255,215,0,.1); border:1px solid rgba(255,215,0,.25); border-radius:20px; padding:2px 8px; font-size:11px; font-weight:600; color:var(--gold); white-space:nowrap; cursor:default; position:relative; }
+  .trophy:hover .trophy-tip { display:block; }
+  .trophy-tip { display:none; position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:var(--navy-mid); border:1px solid var(--border); border-radius:var(--radius-sm); padding:6px 10px; font-size:11px; color:var(--text); font-weight:400; white-space:nowrap; z-index:50; pointer-events:none; box-shadow:0 4px 16px rgba(0,0,0,.4); }
+  .trophy-tip::after { content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:5px solid transparent; border-top-color:var(--border); }
+  .perfil-overlay { display:none; position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.65); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:16px; overflow-y:auto; }
+  .perfil-overlay.open { display:flex; }
+  .perfil-box { background:var(--navy-mid); border:1px solid var(--border); border-radius:var(--radius); width:100%; max-width:640px; margin:auto; box-shadow:0 24px 64px rgba(0,0,0,.6); animation:fadeIn .2s ease; }
+  .perfil-header { display:flex; align-items:center; gap:12px; padding:20px 24px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--navy-mid); z-index:2; border-radius:var(--radius) var(--radius) 0 0; }
+  .perfil-nome { font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:1px; }
+  .perfil-pts { font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--green); margin-left:auto; }
+  .perfil-pts-lbl { font-size:11px; color:var(--text-muted); text-align:right; line-height:1.2; }
+  .perfil-close { background:none; border:none; color:var(--text-muted); font-size:24px; cursor:pointer; padding:0 4px; transition:color .15s; margin-left:8px; }
+  .perfil-close:hover { color:var(--text); }
+  .perfil-body { padding:20px 24px; }
+  .perfil-section-title { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:1px; color:var(--text-muted); margin:20px 0 10px; display:flex; align-items:center; gap:8px; }
+  .perfil-section-title:first-child { margin-top:0; }
+  .perfil-jogo { background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:8px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .perfil-jogo-teams { flex:1; font-size:13px; font-weight:600; min-width:160px; }
+  .perfil-jogo-palpite { font-family:'Bebas Neue',sans-serif; font-size:20px; color:var(--text-muted); }
+  .perfil-jogo-real { font-size:11px; color:var(--text-muted); }
+  .perfil-trophy-list { display:flex; flex-direction:column; gap:8px; }
+  .perfil-trophy-item { display:flex; align-items:center; gap:10px; background:rgba(255,215,0,.06); border:1px solid rgba(255,215,0,.15); border-radius:var(--radius-sm); padding:10px 14px; }
+  .perfil-trophy-icon { font-size:22px; flex-shrink:0; }
+  .perfil-trophy-name { font-weight:700; font-size:13px; color:var(--gold); }
+  .perfil-trophy-reason { font-size:12px; color:var(--text-muted); }
+  .rank-name { cursor:pointer; }
+  .rank-name:hover { color:var(--green); text-decoration:underline; }
+  @media(max-width:768px){ .perfil-header{padding:14px 16px;} .perfil-body{padding:14px 16px;} .perfil-nome{font-size:20px;} .trophy-tip{display:none!important;} }
+
 </style>
 </head>
 <body>
@@ -273,7 +304,7 @@
     <div class="stat-strip" id="statStrip"></div>
     <div class="card" style="margin-bottom:20px">
       <table class="ranking-table">
-        <thead><tr><th>#</th><th>Jogador</th><th>Pontos</th><th>✓ Acertos</th><th>🎯 Placares</th></tr></thead>
+        <thead><tr><th>#</th><th>Jogador</th><th>Pontos</th><th>✓ Acertos</th><th>🎯 Placares</th><th>🏆</th></tr></thead>
         <tbody id="rankingBody"></tbody>
       </table>
     </div>
@@ -543,7 +574,7 @@ function acertouPlacar(pC,pF,rC,rF){ if(rC===null||rC===undefined) return false;
 
 function calcRanking(){
   const rank={};
-  ST.jogadores.forEach(j=>{ rank[j]={nome:j,pts:0,acertos:0,placares:0,ptsPorJogo:{}}; });
+  ST.jogadores.forEach(j=>{ rank[j]={nome:j,pts:0,acertos:0,placares:0,ptsPorJogo:{},ptsPorRodada:{r1:0,r2:0,r3:0,mata:0}}; });
   JOGOS_BASE.forEach(jogo=>{
     const res=ST.resultados[jogo.id];
     if(!res||res.c===''||res.c===null||res.c===undefined) return;
@@ -552,11 +583,52 @@ function calcRanking(){
       if(!p) return;
       const pts=calcPontos(p.c,p.fo,res.c,res.fo);
       rank[j].pts+=pts||0; rank[j].ptsPorJogo[jogo.id]=pts||0;
+      const rod=jogo.r||'mata'; rank[j].ptsPorRodada[rod]=(rank[j].ptsPorRodada[rod]||0)+(pts||0);
       if(acertouResultado(p.c,p.fo,res.c,res.fo)) rank[j].acertos++;
       if(acertouPlacar(p.c,p.fo,res.c,res.fo)) rank[j].placares++;
     });
   });
   return Object.values(rank).sort((a,b)=>b.pts-a.pts||b.acertos-a.acertos||b.placares-a.placares);
+}
+function gruposEncerrado(){ return JOGOS_BASE.filter(j=>j.r!=='mata').every(j=>{const r=ST.resultados[j.id];return r&&r.c!==''&&r.c!==null&&r.c!==undefined;}); }
+function campeonatoEncerrado(){ const f=ST.resultados['final_01'];return f&&f.c!==''&&f.c!==null&&f.c!==undefined; }
+function rodadaEncerrada(rod){ return JOGOS_BASE.filter(j=>j.r===rod).every(j=>{const r=ST.resultados[j.id];return r&&r.c!==''&&r.c!==null&&r.c!==undefined;}); }
+function mataMataEncerrado(){ return campeonatoEncerrado(); }
+function calcTrofeus(rank){
+  const trofeus={};
+  ST.jogadores.forEach(j=>{trofeus[j]=[];});
+  const jogosComRes=JOGOS_BASE.filter(j=>{const r=ST.resultados[j.id];return r&&r.c!==''&&r.c!==null&&r.c!==undefined;}).sort((a,b)=>a.d.localeCompare(b.d)||a.h.localeCompare(b.h));
+  [['r1','1ª Rodada'],['r2','2ª Rodada'],['r3','3ª Rodada']].forEach(([rod,label])=>{
+    if(!rodadaEncerrada(rod)) return;
+    const jogosR=JOGOS_BASE.filter(j=>j.r===rod); let best=-1,bestNome='';
+    rank.forEach(r=>{const pts=jogosR.reduce((s,jg)=>s+(r.ptsPorJogo[jg.id]||0),0);if(pts>best){best=pts;bestNome=r.nome;}});
+    if(bestNome&&best>0) trofeus[bestNome].push({icon:'🏅',label:`Campeão da ${label}`,motivo:`Melhor pontuação: ${best} pts`});
+  });
+  if(mataMataEncerrado()){
+    const jogosMata=JOGOS_BASE.filter(j=>j.r==='mata'); let best=-1,bestNome='';
+    rank.forEach(r=>{const pts=jogosMata.reduce((s,jg)=>s+(r.ptsPorJogo[jg.id]||0),0);if(pts>best){best=pts;bestNome=r.nome;}});
+    if(bestNome&&best>0) trofeus[bestNome].push({icon:'⚔️',label:'Rei do Mata-Mata',motivo:`Melhor pontuação: ${best} pts`});
+  }
+  JOGOS_BASE.forEach(jogo=>{
+    const res=ST.resultados[jogo.id];
+    if(!res||res.c===''||res.c===null||res.c===undefined) return;
+    const ac=rank.filter(r=>{const p=(ST.palpites[r.nome]||{})[jogo.id];return p&&acertouPlacar(p.c,p.fo,res.c,res.fo);});
+    if(ac.length===1) trofeus[ac[0].nome].push({icon:'💡',label:'Acertou Sozinho',motivo:`Placar exato de ${f(jogo.c)} ${res.c}–${res.fo} ${f(jogo.fo)}`});
+  });
+  rank.forEach(r=>{
+    if(r.pts>=1500) trofeus[r.nome].push({icon:'💎',label:'1500 Pontos',motivo:`${r.pts} pts acumulados`});
+    if(r.pts>=2500) trofeus[r.nome].push({icon:'💎💎',label:'2500 Pontos',motivo:`${r.pts} pts acumulados`});
+  });
+  if(campeonatoEncerrado()&&jogosComRes.length>0){
+    let mSeq=0,mNome='';
+    rank.forEach(r=>{let seq=0,mx=0;jogosComRes.forEach(jg=>{const p=(ST.palpites[r.nome]||{})[jg.id];const res=ST.resultados[jg.id];if(p&&acertouResultado(p.c,p.fo,res.c,res.fo)){seq++;if(seq>mx)mx=seq;}else{seq=0;}});if(mx>mSeq){mSeq=mx;mNome=r.nome;}});
+    if(mNome&&mSeq>=2) trofeus[mNome].push({icon:'🔗',label:'Maior Sequência',motivo:`${mSeq} resultados seguidos`});
+    const topP=[...rank].sort((a,b)=>b.placares-a.placares)[0];
+    if(topP&&topP.placares>0) trofeus[topP.nome].push({icon:'🎯',label:'Rei dos Placares',motivo:`${topP.placares} placares exatos`});
+    const topA=[...rank].sort((a,b)=>b.acertos-a.acertos)[0];
+    if(topA&&topA.acertos>0) trofeus[topA.nome].push({icon:'✅',label:'Rei dos Acertos',motivo:`${topA.acertos} resultados corretos`});
+  }
+  return trofeus;
 }
 
 // ═══════════════════════════════════════════════════
@@ -624,7 +696,12 @@ function renderRanking(){
   const rank=calcRanking();
   const body=document.getElementById('rankingBody');
   if(!rank.length){ body.innerHTML=`<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">⏳</div>Aguardando dados...</div></td></tr>`; return; }
-  body.innerHTML=rank.map((r,i)=>`<tr class="rank-${i+1}"><td class="rank-pos">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td><td class="rank-name">${r.nome}<span class="rank-sub">✓ ${r.acertos} acertos · 🎯 ${r.placares} placares</span></td><td class="rank-pts">${r.pts}</td><td><span class="badge-small badge-acerto">✓ ${r.acertos}</span></td><td><span class="badge-small badge-placar">🎯 ${r.placares}</span></td></tr>`).join('');
+  const trofeus=calcTrofeus(rank);
+  body.innerHTML=rank.map((r,i)=>{
+    const trofs=trofeus[r.nome]||[];
+    const th=trofs.length?`<div class="trophy-row">${trofs.map(t=>`<span class="trophy">${t.icon} ${t.label}<span class="trophy-tip">${t.motivo}</span></span>`).join('')}</div>`:'';
+    return `<tr class="rank-${i+1}"><td class="rank-pos">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td><td class="rank-name" onclick="openPerfil('${r.nome.replace(/'/g,"\'")}')">${r.nome}<span class="rank-sub">✓ ${r.acertos} acertos · 🎯 ${r.placares} placares</span>${th}</td><td class="rank-pts">${r.pts}</td><td><span class="badge-small badge-acerto">✓ ${r.acertos}</span></td><td><span class="badge-small badge-placar">🎯 ${r.placares}</span></td><td style="font-size:16px;letter-spacing:-2px">${trofs.map(t=>t.icon).join('')||'–'}</td></tr>`;
+  }).join('');
   const total=rank.reduce((s,r)=>s+r.pts,0);
   document.getElementById('statStrip').innerHTML=`<div class="stat-mini"><div class="val">${rank.length}</div><div class="lbl">Participantes</div></div><div class="stat-mini"><div class="val">${Object.values(ST.resultados).filter(r=>r&&r.c!==''&&r.c!==null&&r.c!==undefined).length}</div><div class="lbl">Jogos finalizados</div></div><div class="stat-mini"><div class="val">${rank[0]?rank[0].pts:0}</div><div class="lbl">Maior pontuação</div></div><div class="stat-mini"><div class="val">${rank.length>0?Math.round(total/rank.length):0}</div><div class="lbl">Média de pontos</div></div>`;
   renderConquistas(rank);
@@ -635,9 +712,9 @@ function renderConquistas(rank){
   const conquistas=[];
   conquistas.push({icon:'👑',label:'Líder do Bolão',player:rank[0].nome,detail:`${rank[0].pts} pontos`});
   const mA=[...rank].sort((a,b)=>b.acertos-a.acertos)[0];
-  if(mA.acertos>0) conquistas.push({icon:'🎯',label:'Mestre dos Resultados',player:mA.nome,detail:`${mA.acertos} acertos`});
+  if(mA.acertos>0) conquistas.push({icon:'⚽',label:'Mestre dos Resultados',player:mA.nome,detail:`${mA.acertos} acertos`});
   const mP=[...rank].sort((a,b)=>b.placares-a.placares)[0];
-  if(mP.placares>0) conquistas.push({icon:'⚽',label:'Craque dos Placares',player:mP.nome,detail:`${mP.placares} placares exatos`});
+  if(mP.placares>0) conquistas.push({icon:'🎯',label:'Craque dos Placares',player:mP.nome,detail:`${mP.placares} placares exatos`});
   ['r1','r2','r3'].forEach((rod,ri)=>{
     const jR=JOGOS_BASE.filter(j=>j.r===rod); let bP=0,bN='';
     rank.forEach(r=>{ const pts=jR.reduce((s,jg)=>s+(r.ptsPorJogo[jg.id]||0),0); if(pts>bP){bP=pts;bN=r.nome;} });
@@ -647,7 +724,7 @@ function renderConquistas(rank){
     const res=ST.resultados[jogo.id];
     if(!res||res.c===''||res.c===null||res.c===undefined) return;
     const ac=rank.filter(r=>{ const p=(ST.palpites[r.nome]||{})[jogo.id]; return p&&acertouPlacar(p.c,p.fo,res.c,res.fo); });
-    if(ac.length===1) conquistas.push({icon:'🦄',label:'Acertou Sozinho',player:ac[0].nome,detail:`Placar de ${jogo.c} x ${jogo.fo}`});
+    if(ac.length===1) conquistas.push({icon:'💡',label:'Acertou Sozinho',player:ac[0].nome,detail:`Placar de ${jogo.c} x ${jogo.fo}`});
   });
   const jogosComRes=JOGOS_BASE.filter(j=>{const r=ST.resultados[j.id];return r&&r.c!==''&&r.c!==null&&r.c!==undefined;}).sort((a,b)=>a.d.localeCompare(b.d)||a.h.localeCompare(b.h));
   if(jogosComRes.length>0){
@@ -846,7 +923,43 @@ function renderAll(){
 // ═══════════════════════════════════════════════════
 //  INIT + POLLING
 // ═══════════════════════════════════════════════════
-document.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('modalPontuacao').classList.remove('open');});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('modalPontuacao').classList.remove('open');document.getElementById('modalPerfil').classList.remove('open');}});
+
+function openPerfil(nome){
+  const rank=calcRanking();
+  const r=rank.find(x=>x.nome===nome);
+  if(!r) return;
+  const trofeus=calcTrofeus(rank);
+  const meusTrofeus=trofeus[nome]||[];
+  document.getElementById('perfilNome').textContent=nome;
+  document.getElementById('perfilPts').textContent=r.pts;
+  document.getElementById('perfilStats').textContent=`✓ ${r.acertos} acertos · 🎯 ${r.placares} placares · 🏆 ${meusTrofeus.length} troféus`;
+  const body=document.getElementById('perfilBody');
+  const palpJog=ST.palpites[nome]||{};
+  const trofeusHtml=meusTrofeus.length?meusTrofeus.map(t=>`<div class="perfil-trophy-item"><div class="perfil-trophy-icon">${t.icon}</div><div><div class="perfil-trophy-name">${t.label}</div><div class="perfil-trophy-reason">${t.motivo}</div></div></div>`).join(''):'<div style="color:var(--text-muted);font-size:13px">Nenhum troféu ainda.</div>';
+  const cl=buildClassifiedMap();
+  let ph='';
+  ['r1','r2','r3','mata'].forEach(rod=>{
+    const jogosR=JOGOS_BASE.filter(j=>j.r===rod);
+    if(!jogosR.some(j=>{const p=palpJog[j.id];return p&&p.c!==''&&p.c!==null;})) return;
+    ph+=`<div class="perfil-section-title">${rod==='mata'?'⚔️ Mata-Mata':rod==='r1'?'1ª Rodada':rod==='r2'?'2ª Rodada':'3ª Rodada'}</div>`;
+    jogosR.forEach(j=>{
+      const p=palpJog[j.id]; if(!p||p.c===''||p.c===null) return;
+      const res=ST.resultados[j.id]; const hasRes=res&&res.c!==''&&res.c!==null&&res.c!==undefined;
+      const pts=hasRes?calcPontos(p.c,p.fo,res.c,res.fo):null;
+      const pc=pts===50?'pts-50':pts>=35?'pts-35':pts>=20?'pts-20':pts>=10?'pts-15':'pts-0';
+      const ph2=pts!==null?`<span class="palpite-pts ${pc}">+${pts}</span>`:'';
+      let tC=j.c,tF=j.fo; if(j.r==='mata'){tC=resolveTeam(j.c,cl)||j.c;tF=resolveTeam(j.fo,cl)||j.fo;}
+      const ipC=tC===j.c&&j.c.match(/^(1º|2º|3º|Venc\.|Perd\.)/);
+      const ipF=tF===j.fo&&j.fo.match(/^(1º|2º|3º|Venc\.|Perd\.)/);
+      const lC=ipC?`<span style="color:var(--text-muted);font-style:italic;font-size:11px">${j.c}</span>`:f(tC);
+      const lF=ipF?`<span style="color:var(--text-muted);font-style:italic;font-size:11px">${j.fo}</span>`:f(tF);
+      ph+=`<div class="perfil-jogo"><div class="perfil-jogo-teams">${lC} <span style="color:var(--text-muted);font-size:11px">vs</span> ${lF}</div><div class="perfil-jogo-palpite" style="color:${pts===50?'var(--gold)':pts>0?'var(--green)':'var(--text-muted)'}">${p.c}–${p.fo}${ph2}</div>${hasRes?`<div class="perfil-jogo-real">Real: ${res.c}–${res.fo}</div>`:''}</div>`;
+    });
+  });
+  body.innerHTML=`<div class="perfil-section-title">🏆 Troféus</div><div class="perfil-trophy-list">${trofeusHtml}</div><div class="perfil-section-title" style="margin-top:24px">📋 Todos os palpites</div>${ph||'<div style="color:var(--text-muted);font-size:13px">Nenhum palpite.</div>'}`;
+  document.getElementById('modalPerfil').classList.add('open');
+}
 
 document.addEventListener('DOMContentLoaded', async ()=>{
   setupMobileNav();
@@ -874,5 +987,16 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   </div>
 </div>
 
+
+<div class="perfil-overlay" id="modalPerfil" onclick="if(event.target===this)document.getElementById('modalPerfil').classList.remove('open')">
+  <div class="perfil-box">
+    <div class="perfil-header">
+      <div><div class="perfil-nome" id="perfilNome"></div><div style="font-size:11px;color:var(--text-muted);margin-top:2px" id="perfilStats"></div></div>
+      <div style="margin-left:auto;text-align:right"><div class="perfil-pts" id="perfilPts"></div><div class="perfil-pts-lbl">pontos</div></div>
+      <button class="perfil-close" onclick="document.getElementById('modalPerfil').classList.remove('open')">✕</button>
+    </div>
+    <div class="perfil-body" id="perfilBody"></div>
+  </div>
+</div>
 </body>
 </html>
