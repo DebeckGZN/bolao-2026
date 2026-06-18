@@ -182,9 +182,9 @@
     .mobile-nav-bar button:active { background: rgba(255,255,255,.06); }
 
     .section-title { font-size: 22px; margin-bottom: 14px; }
-    .stat-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
     .stat-mini { padding: 10px 14px; min-width: unset; }
-    .stat-mini .val { font-size: 26px; }
+    .stat-mini .val { font-size: 22px; }
 
     .ranking-table thead th:nth-child(4),
     .ranking-table thead th:nth-child(5) { display: none; }
@@ -308,14 +308,15 @@
       <button class="inner-tab" onclick="filterRanking('r3',this)">3ª Rodada</button>
       <button class="inner-tab" onclick="filterRanking('mata',this)">⚔️ Mata-Mata</button>
     </div>
-    <div class="stat-strip" id="statStrip"></div>
     <div class="card" style="margin-bottom:20px">
       <table class="ranking-table">
         <thead><tr><th>#</th><th>Jogador</th><th>Pontos</th><th>✓ Acertos</th><th>🎯 Placares</th><th>🏆</th></tr></thead>
         <tbody id="rankingBody"></tbody>
       </table>
     </div>
-    <div class="section-title" style="margin-top:32px">🏅 MURAL DE <span>CONQUISTAS</span></div>
+    <div class="stat-strip" id="statStrip" style="margin-bottom:20px"></div>
+
+    <div class="section-title" style="margin-top:8px">🏅 MURAL DE <span>CONQUISTAS</span></div>
     <div class="conquistas-grid" id="conquistasGrid"></div>
   </div>
 
@@ -765,8 +766,18 @@ function renderRanking(){
   const total=rank.reduce((s,r)=>s+r.pts,0);
   const jogosRodada=currentRankFilter==='geral'?JOGOS_BASE:JOGOS_BASE.filter(j=>j.r===currentRankFilter);
   const finalizados=jogosRodada.filter(j=>{const r=ST.resultados[j.id];return r&&r.c!==''&&r.c!==null&&r.c!==undefined;}).length;
-  const lf=currentRankFilter!=='geral'?' '+RODADA_LABELS_MAP[currentRankFilter]:'';
-  document.getElementById('statStrip').innerHTML=`<div class="stat-mini"><div class="val">${rank.length}</div><div class="lbl">Participantes</div></div><div class="stat-mini"><div class="val">${finalizados}</div><div class="lbl">Jogos finalizados${lf}</div></div><div class="stat-mini"><div class="val">${rank[0]?rank[0].pts:0}</div><div class="lbl">Maior pontuação${lf}</div></div><div class="stat-mini"><div class="val">${rank.length>0?Math.round(total/rank.length):0}</div><div class="lbl">Média de pontos</div></div>`;
+  let totalAcertos=0,totalPlacares=0;
+  rankCompleto.forEach(r=>{
+    jogosRodada.forEach(j=>{
+      const p=(ST.palpites[r.nome]||{})[j.id];
+      const res=ST.resultados[j.id];
+      if(!p||!res||res.c===''||res.c===null||res.c===undefined) return;
+      if(acertouResultado(p.c,p.fo,res.c,res.fo)) totalAcertos++;
+      if(acertouPlacar(p.c,p.fo,res.c,res.fo)) totalPlacares++;
+    });
+  });
+  const totalTrofeus=Object.values(calcTrofeusFiltrados(rankCompleto,currentRankFilter)).reduce((s,t)=>s+t.length,0);
+  document.getElementById('statStrip').innerHTML=`<div class="stat-mini"><div class="val">${finalizados}/${jogosRodada.length}</div><div class="lbl">Jogos finalizados</div></div><div class="stat-mini"><div class="val">${totalAcertos}</div><div class="lbl">Acertos</div></div><div class="stat-mini"><div class="val">${totalPlacares}</div><div class="lbl">Placares exatos</div></div><div class="stat-mini"><div class="val">${totalTrofeus}</div><div class="lbl">Troféus</div></div>`;
   renderConquistas(rankCompleto);
 }
 function renderConquistas(rank){
