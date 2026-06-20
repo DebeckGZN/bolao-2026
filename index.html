@@ -854,12 +854,13 @@ function renderRanking(){
   if(!rank.length){ body.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">⏳</div>Aguardando dados...</div></td></tr>`; return; }
   const trofeus=calcTrofeusFiltrados(rankCompleto,currentRankFilter);
   body.innerHTML=rank.map((r,i)=>{
-    // No ranking, exibe apenas medalhas de colocação na rodada (não "Acertou Sozinho")
-    const trofs=(trofeus[r.nome]||[]).filter(t=>t.label!=='Acertou Sozinho');
+    const todosTrofs=trofeus[r.nome]||[];
+    // Nas tags abaixo do nome, exibe apenas medalhas de colocação na rodada (não "Acertou Sozinho")
+    const trofs=todosTrofs.filter(t=>t.label!=='Acertou Sozinho');
     const th=trofs.length?`<div class="trophy-row">${trofs.map(t=>`<span class="trophy">${t.icon} ${t.label}<span class="trophy-tip">${t.motivo}</span></span>`).join('')}</div>`:'';
     const ns=r.nome.replace(/'/g,"\'");
     const streakHtml=(r.streakAtual||0)>=2?` <span class="rank-streak">🔥 ${r.streakAtual}</span>`:'';
-    return `<tr class="rank-${i+1}"><td class="rank-pos">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td><td class="rank-name" onclick="openPerfil('${ns}','${currentRankFilter}')">${r.nome}<span class="rank-sub"><span class="rank-sub-line">✓ ${r.acertos} acertos${streakHtml}</span><span class="rank-sub-line">🎯 ${r.placares} placares</span></span>${th}</td><td class="rank-pts">${r.pts}</td><td><span class="badge-small badge-acerto">✓ ${r.acertos}</span></td><td><span class="badge-small badge-placar">🎯 ${r.placares}</span></td><td style="font-size:16px;letter-spacing:-2px">${trofs.map(t=>t.icon).join('')||'–'}</td></tr>`;
+    return `<tr class="rank-${i+1}"><td class="rank-pos">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td><td class="rank-name" onclick="openPerfil('${ns}','${currentRankFilter}')">${r.nome}<span class="rank-sub"><span class="rank-sub-line">✓ ${r.acertos} acertos${streakHtml}</span><span class="rank-sub-line">🎯 ${r.placares} placares</span></span>${th}</td><td class="rank-pts">${r.pts}</td><td><span class="badge-small badge-acerto">✓ ${r.acertos}</span></td><td><span class="badge-small badge-placar">🎯 ${r.placares}</span></td><td style="font-size:16px;letter-spacing:-2px">${todosTrofs.map(t=>t.icon).join('')||'–'}</td></tr>`;
   }).join('');
   const total=rank.reduce((s,r)=>s+r.pts,0);
   const jogosRodada=currentRankFilter==='geral'?JOGOS_BASE:JOGOS_BASE.filter(j=>j.r===currentRankFilter);
