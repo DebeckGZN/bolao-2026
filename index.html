@@ -110,7 +110,7 @@
   .palpites-container { border-top:1px solid var(--border); padding:12px 16px; display:none; }
   .palpites-container.open { display:block; }
   .palpites-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; }
-  .palpite-item { display:flex; align-items:center; justify-content:space-between; background:var(--navy-light); border-radius:var(--radius-sm); padding:8px 12px; font-size:13px; }
+  .palpite-item { display:flex; align-items:center; justify-content:space-between; background:var(--navy-light); border-radius:var(--radius-sm); padding:8px 12px; font-size:13px; gap:8px; }
   .palpite-name { font-weight:600; color:var(--text); }
   .palpite-score { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:1px; }
   .palpite-pts { font-size:11px; margin-left:6px; border-radius:4px; padding:1px 5px; font-weight:700; }
@@ -441,7 +441,7 @@
 // ═══════════════════════════════════════════════════
 //  ⚙️  CONFIGURAÇÃO
 // ═══════════════════════════════════════════════════
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-VVaEluW_yef_Nc7NGUjGG-4JkQ4MkxqTERKpevHPNwPcDCAg5kWeGOHzezuNLBIV/exec"; // ← mesma URL do admin
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwKesd0iWyH_9MMpdg0eCoJqOe2My0zsLV_DVEbcWPeBIlt4yFEToaFkVeA4pQsADZV/exec"; // ← mesma URL do admin
 
 // ═══════════════════════════════════════════════════
 //  DATA: GRUPOS, FLAGS, JOGOS
@@ -1548,7 +1548,15 @@ function renderJogoCard(j){
     let pts=null,ph='';
     if(hasResult){pts=calcPontosJogo(j.id,p.c,p.fo,res.c,res.fo,null,p.pen,res.pen);const cl=pts===65?'pts-65':pts>=50?'pts-50':pts>=35?'pts-35':pts>=20?'pts-20':pts>=15?'pts-15':'pts-0';ph=`<span class="palpite-pts ${cl}">+${pts}</span>`;}
     const scoreColor=pts===65?'var(--text)':pts===50?'var(--gold)':pts>0?'var(--green)':'var(--text-muted)';
-    return `<div class="palpite-item"><span class="palpite-name">${jg}</span><span class="palpite-score" style="color:${scoreColor}">${p.c}–${p.fo}${ph}</span></div>`;
+    const isEmpatePalp = +p.c === +p.fo;
+    let penLabel = '';
+    if(j.r==='mata' && isEmpatePalp && p.pen){
+      const cl2 = buildClassifiedMap();
+      const teamC = resolveTeam(j.c, cl2), teamF = resolveTeam(j.fo, cl2);
+      const penTeam = p.pen==='c' ? teamC : teamF;
+      penLabel = `<span style="font-size:10px;color:var(--gold);display:block;margin-top:1px">⚽ pên: ${penTeam}</span>`;
+    }
+    return `<div class="palpite-item"><span class="palpite-name">${jg}</span><span style="text-align:right"><span class="palpite-score" style="color:${scoreColor}">${p.c}–${p.fo}${ph}</span>${penLabel}</span></div>`;
   }).join('');
   return `<div class="jogo-card ${isBr?'brazil-game':''}"><div class="jogo-header" onclick="togglePalpites(this)"><span class="jogo-time">${j.h}</span><div class="jogo-teams"><span>${tlC}</span><span class="vs-badge">VS</span><span>${tlF}</span>${gb}</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${statusHtml}<span style="color:var(--text-muted);font-size:18px">▾</span></div></div><div class="palpites-container"><div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px">Palpites dos participantes</div>${palpites||'<div style="color:var(--text-muted);font-size:13px">Nenhum jogador.</div>'}</div></div>`;
 }
@@ -1756,7 +1764,11 @@ function openPerfil(nome,filtro){
       const lC=ipC?`<span style="color:var(--text-muted);font-style:italic;font-size:11px">${j.c}</span>`:f(tC);
       const lF=ipF?`<span style="color:var(--text-muted);font-style:italic;font-size:11px">${j.fo}</span>`:f(tF);
       const scoreColor=pts===65?'var(--text)':pts===50?'var(--gold)':pts>0?'var(--green)':'var(--text-muted)';
-      ph+=`<div class="perfil-jogo"><div class="perfil-jogo-teams">${lC} <span style="color:var(--text-muted);font-size:11px">vs</span> ${lF}</div><div class="perfil-jogo-palpite" style="color:${scoreColor}">${p.c}–${p.fo}${ph2}</div>${hasRes?`<div class="perfil-jogo-real">Real: ${res.c}–${res.fo}</div>`:''}</div>`;
+      const isEmpatePalp = +p.c === +p.fo;
+      const penPalpHtml = (j.r==='mata' && isEmpatePalp && p.pen)
+        ? `<div style="font-size:10px;color:var(--gold);margin-top:2px">⚽ pênalti: ${p.pen==='c'?tC:tF}</div>` : '';
+      const realHtml = hasRes ? `<div class="perfil-jogo-real">Real: ${res.c}–${res.fo}${res.pen?` (pên: ${res.pen==='c'?tC:tF})`:''}</div>` : '';
+      ph+=`<div class="perfil-jogo"><div class="perfil-jogo-teams">${lC} <span style="color:var(--text-muted);font-size:11px">vs</span> ${lF}</div><div><div class="perfil-jogo-palpite" style="color:${scoreColor}">${p.c}–${p.fo}${ph2}</div>${penPalpHtml}</div>${realHtml}</div>`;
     });
   });
   const palpLabel=filtro==='geral'?'📋 Todos os palpites':`📋 Palpites — ${labelFiltro}`;
