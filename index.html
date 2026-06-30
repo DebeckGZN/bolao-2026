@@ -1470,18 +1470,26 @@ function renderConquistas(rank){
   const mA=[...rank].sort((a,b)=>b.acertos-a.acertos)[0];
   const mP=[...rank].sort((a,b)=>b.placares-a.placares)[0];
   const jogosComRes=JOGOS_BASE.filter(j=>{const r=ST.resultados[j.id];return r&&r.c!==''&&r.c!==null&&r.c!==undefined;}).sort((a,b)=>a.d.localeCompare(b.d)||a.h.localeCompare(b.h));
-  let mSeq=0,mNome='—';
+  let mSeq=0;
   if(jogosComRes.length>0){
     rank.forEach(r=>{
       let seq=0,mx=0;
       jogosComRes.forEach(jg=>{const p=(ST.palpites[r.nome]||{})[jg.id];const res=ST.resultados[jg.id];if(p&&acertouResultado(p.c,p.fo,res.c,res.fo)){seq++;if(seq>mx)mx=seq;}else{seq=0;}});
-      if(mx>mSeq){mSeq=mx;mNome=r.nome;}
+      if(mx>mSeq) mSeq=mx;
     });
   }
+  const joinNomes=arr=>arr.map(r=>typeof r==='string'?r:r.nome).join(' · ');
+  const topA=mA.acertos>0?rank.filter(r=>r.acertos===mA.acertos):[];
+  const topP=mP.placares>0?rank.filter(r=>r.placares===mP.placares):[];
+  const topSeq=mSeq>=2?rank.filter(r=>{
+    let seq=0,mx=0;
+    jogosComRes.forEach(jg=>{const p=(ST.palpites[r.nome]||{})[jg.id];const res=ST.resultados[jg.id];if(p&&acertouResultado(p.c,p.fo,res.c,res.fo)){seq++;if(seq>mx)mx=seq;}else{seq=0;}});
+    return mx===mSeq;
+  }):[];
   const cards=[
-    {icon:'⚽',label:'Acertos',player:mA.acertos>0?mA.nome:'—',detail:mA.acertos>0?`${mA.acertos} acertos`:'Sem dados ainda'},
-    {icon:'🎯',label:'Placares',player:mP.placares>0?mP.nome:'—',detail:mP.placares>0?`${mP.placares} placares exatos`:'Sem dados ainda'},
-    {icon:'🔥',label:'Sequência',player:mSeq>=2?mNome:'—',detail:mSeq>=2?`${mSeq} acertos seguidos`:'Sem dados ainda'},
+    {icon:'⚽',label:'Acertos',player:topA.length>0?joinNomes(topA):'—',detail:topA.length>0?`${mA.acertos} acertos`:'Sem dados ainda'},
+    {icon:'🎯',label:'Placares',player:topP.length>0?joinNomes(topP):'—',detail:topP.length>0?`${mP.placares} placares exatos`:'Sem dados ainda'},
+    {icon:'🔥',label:'Sequência',player:topSeq.length>0?joinNomes(topSeq):'—',detail:topSeq.length>0?`${mSeq} acertos seguidos`:'Sem dados ainda'},
   ];
   grid.innerHTML=cards.map(c=>`<div class="conquista-card"><div class="conquista-icon">${c.icon}</div><div class="conquista-label">${c.label}</div><div class="conquista-player">${c.player}</div><div class="conquista-detail">${c.detail}</div></div>`).join('');
 
@@ -1760,9 +1768,18 @@ function openPerfil(nome,filtro){
   const trofeus=calcTrofeusFiltrados(rankCompleto,filtro);
   const meusTrofeus=trofeus[nome]||[];
   const labelFiltro=RODADA_LABELS_MAP[filtro]||'';
+  const _jogosOrd=(filtro==='geral'?JOGOS_BASE:JOGOS_BASE.filter(j=>j.r===filtro))
+    .filter(j=>{const res=ST.resultados[j.id];return res&&res.c!==''&&res.c!==null&&res.c!==undefined;})
+    .sort((a,b)=>a.d.localeCompare(b.d)||a.h.localeCompare(b.h));
+  let _mSeqP=0,_sAtual=0;
+  _jogosOrd.forEach(jogo=>{
+    const p=(ST.palpites[nome]||{})[jogo.id],res=ST.resultados[jogo.id];
+    if(p&&acertouResultado(p.c,p.fo,res.c,res.fo)){_sAtual++;if(_sAtual>_mSeqP)_mSeqP=_sAtual;}else{_sAtual=0;}
+  });
+  const _seqTxt=_mSeqP>=2?` · 🔥 ${_mSeqP} seq.`:'';
   document.getElementById('perfilNome').textContent=nome;
   document.getElementById('perfilPts').textContent=r.pts;
-  document.getElementById('perfilStats').textContent=`✓ ${r.acertos} acertos · 🎯 ${r.placares} placares`+(filtro!=='geral'?` · ${labelFiltro}`:`· 🏆 ${meusTrofeus.length} troféus`);
+  document.getElementById('perfilStats').textContent=`✓ ${r.acertos} acertos · 🎯 ${r.placares} placares${_seqTxt}`+(filtro!=='geral'?` · ${labelFiltro}`:`· 🏆 ${meusTrofeus.length} troféus`);
   const body=document.getElementById('perfilBody');
   const palpJog=ST.palpites[nome]||{};
   const trofeusHtml=meusTrofeus.length?meusTrofeus.map(t=>`<div class="perfil-trophy-item"><div class="perfil-trophy-icon">${t.icon}</div><div><div class="perfil-trophy-name">${t.label}</div><div class="perfil-trophy-reason">${t.motivo}</div></div></div>`).join(''):`<div style="color:var(--text-muted);font-size:13px">Nenhum troféu${filtro!=='geral'?' nesta rodada':''} ainda.</div>`;
