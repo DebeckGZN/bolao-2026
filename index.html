@@ -738,7 +738,14 @@ function calcTrofeus(rank){
     const res=ST.resultados[jogo.id];
     if(!res||res.c===''||res.c===null||res.c===undefined) return;
     const ac=rank.filter(r=>{const p=(ST.palpites[r.nome]||{})[jogo.id];return p&&acertouPlacar(p.c,p.fo,res.c,res.fo);});
-    if(ac.length===1) trofeus[ac[0].nome].push({icon:'💡',label:'Acertou Sozinho',motivo:`Placar exato de ${f(jogo.c)} ${res.c}–${res.fo} ${f(jogo.fo)} (+65 pts)`});
+    if(ac.length===1){
+      const _cl=buildClassifiedMap();
+      const tC=jogo.r==='mata'?(resolveTeam(jogo.c,_cl)||jogo.c):jogo.c;
+      const tF=jogo.r==='mata'?(resolveTeam(jogo.fo,_cl)||jogo.fo):jogo.fo;
+      const isPh=s=>s.match(/^(1º|2º|3º|Venc\.|Perd\.)/);
+      const nC=isPh(tC)?jogo.c:tC, nF=isPh(tF)?jogo.fo:tF;
+      trofeus[ac[0].nome].push({icon:'💡',label:'Acertou Sozinho',motivo:`Placar exato de ${f(nC)} ${res.c}–${res.fo} ${f(nF)} (+65 pts)`});
+    }
   });
   rank.forEach(r=>{
     if(r.pts>=1500) trofeus[r.nome].push({icon:'💎',label:'1500 Pontos',motivo:`${r.pts} pts acumulados`});
@@ -1334,7 +1341,7 @@ function buildClassifiedMap(){
     if(resolvedTeam) cl[slotLabel]=resolvedTeam;
   });
   const mataJogos=JOGOS_BASE.filter(j=>j.r==='mata').sort((a,b)=>a.d.localeCompare(b.d)||a.h.localeCompare(b.h));
-  mataJogos.forEach(j=>{ const res=ST.resultados[j.id]; if(!res||res.c===''||res.c===null||res.c===undefined) return; const tC=resolveTeam(j.c,cl),tF=resolveTeam(j.fo,cl); const rc=+res.c,rf=+res.fo; let w=null,l=null; if(rc>rf){w=tC;l=tF;}else if(rc<rf){w=tF;l=tC;} if(w){cl['V:'+labelFor(j)]=w;cl['P:'+labelFor(j)]=l;} });
+  mataJogos.forEach(j=>{ const res=ST.resultados[j.id]; if(!res||res.c===''||res.c===null||res.c===undefined) return; const tC=resolveTeam(j.c,cl),tF=resolveTeam(j.fo,cl); const rc=+res.c,rf=+res.fo; let w=null,l=null; if(rc>rf){w=tC;l=tF;}else if(rc<rf){w=tF;l=tC;}else if(rc===rf&&res.pen){w=res.pen==='c'?tC:tF;l=res.pen==='c'?tF:tC;} if(w){cl['V:'+labelFor(j)]=w;cl['P:'+labelFor(j)]=l;} });
   return cl;
 }
 
@@ -1492,7 +1499,14 @@ function renderConquistas(rank){
     const res=ST.resultados[jogo.id];
     if(!res||res.c===''||res.c===null||res.c===undefined) return;
     const ac=rank.filter(r=>{const p=(ST.palpites[r.nome]||{})[jogo.id];return p&&acertouPlacar(p.c,p.fo,res.c,res.fo);});
-    if(ac.length===1) sozinhoRows.push({nome:ac[0].nome,rodada:rodadaLabel[jogo.r]||jogo.r,placar:`${f(jogo.c)} ${res.c} x ${res.fo} ${f(jogo.fo)}`,data:jogo.d});
+    if(ac.length===1){
+      const _cl2=buildClassifiedMap();
+      const tC2=jogo.r==='mata'?(resolveTeam(jogo.c,_cl2)||jogo.c):jogo.c;
+      const tF2=jogo.r==='mata'?(resolveTeam(jogo.fo,_cl2)||jogo.fo):jogo.fo;
+      const isPh2=s=>s.match(/^(1º|2º|3º|Venc\.|Perd\.)/);
+      const nC2=isPh2(tC2)?jogo.c:tC2, nF2=isPh2(tF2)?jogo.fo:tF2;
+      sozinhoRows.push({nome:ac[0].nome,rodada:rodadaLabel[jogo.r]||jogo.r,placar:`${f(nC2)} ${res.c} x ${res.fo} ${f(nF2)}`,data:jogo.d});
+    }
   });
   sozinhoRows.sort((a,b)=>b.data.localeCompare(a.data));
 
