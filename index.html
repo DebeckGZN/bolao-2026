@@ -664,12 +664,14 @@ function calcAcertosUnicosMap(){
   });
   return map;
 }
-// Pontos com bônus de "Acertou Sozinho" (+65) e pênaltis (+15)
+// Pontos com bônus de "Acertou Sozinho" (+15 extra se único no placar)
+// e pênaltis (+15). Máximo: 50+15+15=80 (sozinho+pênalti acertado).
 function calcPontosJogo(jogoId,palpC,palpF,realC,realF,unicosMap,palpPen,realPen){
   const pts=calcPontos(palpC,palpF,realC,realF,palpPen,realPen);
-  if(pts!==null && pts>=50 && pts<65){
+  if(pts===null) return null;
+  if(acertouPlacar(palpC,palpF,realC,realF)){
     const map=unicosMap||calcAcertosUnicosMap();
-    if(map[jogoId]) return pts-50+65;
+    if(map[jogoId]) return pts+15;
   }
   return pts;
 }
@@ -1422,7 +1424,12 @@ function renderRanking(){
     const th=trofs.length?`<div class="trophy-row">${trofs.map(t=>`<span class="trophy">${t.icon} ${t.label}<span class="trophy-tip">${t.motivo}</span></span>`).join('')}</div>`:'';
     const ns=r.nome.replace(/'/g,"\'");
     const streakHtml=(r.streakAtual||0)>=2?` <span class="rank-streak">🔥 ${r.streakAtual}</span>`:'';
-    return `<tr class="rank-${i+1}"><td class="rank-pos">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td><td class="rank-name" onclick="openPerfil('${ns}','${currentRankFilter}')">${r.nome}<span class="rank-sub"><span class="rank-sub-line">✓ ${r.acertos} acertos${streakHtml}</span><span class="rank-sub-line">🎯 ${r.placares} placares</span></span>${th}</td><td class="rank-pts">${r.pts}</td><td><span class="badge-small badge-acerto">✓ ${r.acertos}</span></td><td><span class="badge-small badge-placar">🎯 ${r.placares}</span></td><td style="font-size:16px;letter-spacing:-2px">${todosTrofs.map(t=>t.icon).join('')||'–'}</td></tr>`;
+    return `<tr class="rank-${i+1}"><td class="rank-pos">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td><td class="rank-name" onclick="openPerfil('${ns}','${currentRankFilter}')">${r.nome}<span class="rank-sub"><span class="rank-sub-line">✓ ${r.acertos} acertos${streakHtml}</span><span class="rank-sub-line">🎯 ${r.placares} placares</span></span>${th}</td><td class="rank-pts">${r.pts}</td><td><span class="badge-small badge-acerto">✓ ${r.acertos}</span></td><td><span class="badge-small badge-placar">🎯 ${r.placares}</span></td><td style="font-size:16px;letter-spacing:-2px">${(()=>{
+        const nonSozinho = todosTrofs.filter(t=>t.label!=='Acertou Sozinho').map(t=>t.icon).join('');
+        const sozinhoCount = todosTrofs.filter(t=>t.label==='Acertou Sozinho').length;
+        const sozinhoTag = sozinhoCount > 0 ? `<span style="font-size:11px;white-space:nowrap">💡${sozinhoCount}</span>` : '';
+        return (nonSozinho||sozinhoTag) ? nonSozinho+sozinhoTag : '–';
+      })()}</td></tr>`;
   }).join('');
   const total=rank.reduce((s,r)=>s+r.pts,0);
   const jogosRodada=currentRankFilter==='geral'?JOGOS_BASE:JOGOS_BASE.filter(j=>j.r===currentRankFilter);
@@ -1770,7 +1777,7 @@ function openPerfil(nome,filtro){
       const p=palpJog[j.id]; if(!p||p.c===''||p.c===null) return;
       const res=ST.resultados[j.id]; const hasRes=res&&res.c!==''&&res.c!==null&&res.c!==undefined;
       const pts=hasRes?calcPontosJogo(j.id,p.c,p.fo,res.c,res.fo,null,p.pen,res.pen):null;
-      const pc=pts===65?'pts-65':pts===50?'pts-50':pts>=35?'pts-35':pts>=20?'pts-20':pts>=10?'pts-15':'pts-0';
+      const pc=pts>=65?'pts-65':pts===50?'pts-50':pts>=35?'pts-35':pts>=20?'pts-20':pts>=10?'pts-15':'pts-0';
       const ph2=pts!==null?`<span class="palpite-pts ${pc}">+${pts}</span>`:'';
       let tC=j.c,tF=j.fo; if(j.r==='mata'){tC=resolveTeam(j.c,cl)||j.c;tF=resolveTeam(j.fo,cl)||j.fo;}
       const ipC=tC===j.c&&j.c.match(/^(1º|2º|3º|Venc\.|Perd\.)/);
